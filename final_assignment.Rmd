@@ -5,9 +5,17 @@ output: html_document
 editor_options:
   chunk_output_type: console
 ---
-## Background,
+## Background
 
-The Roman Emperors ruled the Roman Empire from 27 BC till 395 AC.
+According to wikipedia:
+
+The Roman emperor was the ruler of the Roman Empire during the imperial period (starting in 27 BC). The emperors used a variety of different titles throughout history. Often when a given Roman is described as becoming "emperor" in English, it reflects his taking of the title Augustus or Caesar. Another title often used was imperator, originally a military honorific. Early emperors also used the title Princeps Civitatis ('first citizen'). Emperors frequently amassed republican titles, notably princeps senatus, consul, and pontifex maximus.
+
+The legitimacy of an emperor's rule depended on his control of the army and recognition by the Senate; an emperor would normally be proclaimed by his troops, or invested with imperial titles by the Senate, or both. The first emperors reigned alone; later emperors would sometimes rule with co-emperors and divide administration of the empire between them.
+
+The Romans considered the office of emperor to be distinct from that of a king. The first emperor, Augustus, resolutely refused recognition as a monarch.[1] For the first three hundred years of Roman emperors, from Augustus until Diocletian, efforts were made to portray the emperors as leaders of the republic, fearing any association with the kings of Rome prior to the Republic.
+
+From Diocletian, whose tetrarchic reforms also divided the position into one emperor in the West and one in the East, until the end of the Empire, emperors ruled in an openly monarchic style[2] and did not preserve the nominal principle of a republic, but the contrast with "kings" was maintained: although the imperial succession was generally hereditary, it was only hereditary if there was a suitable candidate acceptable to the army and the bureaucracy,[3] so the principle of automatic inheritance was not adopted. Elements of the republican institutional framework (senate, consuls, and magistrates) were preserved even after the end of the Western Empire. (https://en.wikipedia.org/wiki/Roman_emperor)
 
 ```{r setup, include=FALSE}
 library(dplyr)
@@ -332,3 +340,7 @@ The R^2 is higher and RSE is smaller for MODEL2, which means MODEL2 explains hig
 A multiple logistic regression was calculated to predict died_naturally (MODEL5), died_by_force (MODEL3), died_by_battle (MODEL4). The AIC numbers of MODEL3 and MODEL4 were higher then their null models, which means these variables cannot be explained by the variables in the dataset.
 The prediction of died_naturally was based on rise_recoded and age_reign_start. The emperor's predicted died_naturally is equal to -5.24133 + 2.42209 (rise_recoded)  + 0.07210 (age_reign_start), where rise_recoded is coded as Birthright and Other and age_reign_start is measured in years. Both predictors were significant.
 Based on statistical diagnostics the fitted model cannot be considered reliable. Tjur's R2 is 0.15 so the model does not explain the 85% of the variation,  and the predicted and the observed results was found to be independent (X2(1, N = 44) = 7.2196, p < 0.05).
+
+## Improvement
+
+It would be useful to collect more information related to the emperors: health condition, mental illnesses, foreign policy situation (for eg, war with barbarian tribes), domestic political situation to have a better predictive model.
