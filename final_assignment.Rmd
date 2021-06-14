@@ -61,7 +61,7 @@ emperors <- emperors_raw %>%
     era = as.factor(era)
            ) %>%
   select(-name_full, -notes, - verif_who) %>%
-#As the dataset contains BC years it is necessary to recode them
+#As the dataset contains BC years so it is necessary to recode them for further computations
 #Firstly set the dates to years only
   mutate(
     birth_year = as.numeric(format(birth, '%Y')),
@@ -69,6 +69,7 @@ emperors <- emperors_raw %>%
     reign_start_year = as.numeric(format(reign_start, '%Y')),
     reign_end_year = as.numeric(format(reign_end, '%Y'))) %>%
 #Recoding BC years as negative numbers and AC years as positive numbers
+#If the birth year or the starting year of the reign is higher then the year of the death/the end of reign, then that year must be BC
   mutate(
     birth_year = ifelse(birth_year > death_year, (birth_year * -1), (birth_year * 1)),
     reign_start_year = ifelse(reign_start_year > reign_end_year, (reign_start_year * -1), (reign_start_year * 1)),
@@ -83,7 +84,7 @@ emperors <- emperors_raw %>%
 
 ## EDA
 
-The emperors rose to and fall out of power by many reasons, so I investigate the causes how they followed each other.
+### How rulers came to power and lost it
 
 ``` {r}
 #Putting the emperors on a timeline, based on the fact how they rose to power and which dynasty they did belong
@@ -98,7 +99,7 @@ rise_emperors <- ggplot(emperors, aes(reign_start_year, rise, color = dynasty, s
 
 rise_emperors
   
-#Putting the emperors on a timeline, based on the fact how they fall out of power and which dynasty they did belong
+#Putting the emperors on a timeline, based on the fact how they fell out of power and which dynasty they did belong
 fall_emperors <- emperors %>%
   ggplot(aes(reign_end_year, cause, color = dynasty, shape = era)) +
   geom_point(alpha = 0.5) +
@@ -111,6 +112,14 @@ fall_emperors <- emperors %>%
 
 fall_emperors
 
+```
+
+The emperors came to power mostly by birthright and died of natural causes or were the victims of assassination.
+
+### How long the reign of the emperors lasted and how it ended
+
+``` {r}
+
 #Exploring the frequency of the lengths of the reigns
 reign_length_emperors <- emperors %>%
   ggplot(aes(reign_long_year, fill = cause)) +
@@ -118,7 +127,7 @@ reign_length_emperors <- emperors %>%
   theme(legend.position = "bottom") +
   xlab("The rise of the emperors") +
   ylab(NULL) +
-  labs(title = "The lenght of the reigns") +
+  labs(title = "The length of the reign of each emperor") +
   scale_fill_viridis(discrete = TRUE, na.value = "grey", name = "The cause of death")
 
 reign_length_emperors
@@ -136,6 +145,13 @@ rise_and_fall2 <- emperors %>%
 
 rise_and_fall2
 
+```
+
+Many emperors ruled for only one or two years, and those who came to power by birthright may also have been assassinated.
+
+### How old were the emperors when they came to power?
+
+``` {r}
 #Exploring the frequency of the ages of the emperors at the beginning of their reign
 age_rise_emperors <- emperors %>%
   ggplot(aes(age_reign_start, fill = rise)) +
@@ -147,6 +163,13 @@ age_rise_emperors <- emperors %>%
   scale_fill_viridis(discrete = TRUE, na.value = "grey", name = "The cause of rise")
 
 age_rise_emperors
+
+#calculate the mean when the emperors rose to power
+mean_age_reign_start <- mean(emperors$age_reign_start, na.rm = TRUE)
+
+#calculate SD
+sd_age_reign_start <- sd(emperors$age_reign_start, na.rm = TRUE)
+
 
 #Exploring how the age of the emperors at the beginning of their reign relates to the duration of their reign
 age_and_long <- emperors %>%
@@ -161,6 +184,14 @@ age_and_long <- emperors %>%
 
 age_and_long
 
+```
+
+Average age at which rulers came to power was `r mean_age_reign_start` years (SD: `r sd_age_reign_start`). Those who came to the throne when they were old ruled for shorter periods.
+
+### How old the emperor were when they lost their power?
+
+```{r}
+
 #Exploring the frequency of the ages of the emperors at the beginning of their reign
 age_death_emperors <- emperors %>%
   ggplot(aes(age_reign_end, fill = cause)) +
@@ -172,6 +203,12 @@ age_death_emperors <- emperors %>%
   scale_fill_viridis(discrete = TRUE, na.value = "grey", name = "The cause of death")
 
 age_death_emperors
+
+#calculate the mean when the emperors fell out of power
+mean_age_reign_end <- mean(emperors$age_reign_end, na.rm = TRUE)
+
+#calculate SD
+sd_age_reign_end <- sd(emperors$age_reign_end, na.rm = TRUE)
 
 #Exploring how the age of the emperors at the end of their reign relates to the duration of their reign
 death_and_long <- emperors %>%
@@ -187,39 +224,39 @@ death_and_long <- emperors %>%
 death_and_long
 ```
 
+Average age at which rulers came to power was `r mean_age_reign_end` years (SD: `r sd_age_reign_end`).
 
 ## Recoding the data to prepare it for the predictive models
-
 
 ```{r}
 
 emperors_principate <- emperors %>%
 #Filtering the data for the Principate era only as in the Dominate era there were 4 rulers at once
   filter(era == "Principate") %>%
-  select(-birth, -death, -birth_cty, -birth_prv, -reign_start, -reign_end, -era) %>%
+  dplyr:: select(-birth, -death, -birth_cty, -birth_prv, -reign_start, -reign_end, -era) %>%
   mutate(
 #recode cause into three categorical level
 #Making one category form Captivity and Died in Battle: Battle
 #Making one category from Assassination, Suicide, Execution: Forced  
-    cause_recoded = recode(cause, "Died in Battle" = "Battle", "Captivity" = "Battle", "Assassination" = "Forced", "Suicide" = "Forced", "Execution" = "Forced"),
+    cause_recoded = recode_factor(cause, "Died in Battle" = "Battle", "Natural Causes" = "Natural Causes", .default = "Forced"),
 #Recoding the factor killer
 #Making one category from Aneurism and Heart Failure: Health
 #Making one category from Lightning, Fire: Natural disaster
-    killer_recoded = recode(killer, "Aneurism" = "Health", "Heart Failure" = "Health", "Disease" = "Health",
+    killer_recoded = recode_factor(killer, "Aneurism" = "Health", "Heart Failure" = "Health", "Disease" = "Health",
                             "Lightning" = "Natural   Phenomenon", "Fire" = "Natural Phenomenon", "Wife" = "Other Opponents",
                             "Court Officials" = "Other Opponents", "Usurper" = "Other Opponents"),
 #Recoding the factor rise
 #Creating to categories: Birthright, Appointed
-    rise_recoded = recode(rise, "Birthright" = "Birthright", .default = "Other"),
+    rise_recoded = recode_factor(rise, "Birthright" = "Birthright", .default = "Other"),
 #Making dummy variables for dynasties
-    d_Gordian = recode(dynasty, "Gordian" = 1, .default = 0),
-    d_Julio_Claudian = recode(dynasty, "Julio-Claudian" = 1, .default = 0),
-    d_Severan = recode(dynasty, "Severan" = 1, .default = 0),
-    d_Nerva_Antonine = recode(dynasty, "Nerva-Antonine" = 1, .default = 0),
+    d_Gordian = recode_factor(dynasty, "Gordian" = 1, .default = 0),
+    d_Julio_Claudian = recode_factor(dynasty, "Julio-Claudian" = 1, .default = 0),
+    d_Severan = recode_factor(dynasty, "Severan" = 1, .default = 0),
+    d_Nerva_Antonine = recode_factor(dynasty, "Nerva-Antonine" = 1, .default = 0),
 #Making dummy variables from the cause_recoded for the models
-    died_by_force = recode(cause_recoded, "Forced" = 1, "Battle" = 0, "Natural Causes" = 0),
-    died_by_battle = recode(cause_recoded, "Forced" = 0, "Battle" = 1, "Natural Causes" = 0),
-    died_naturally = recode(cause_recoded, "Forced" = 0, "Battle" = 0, "Natural Causes" = 1)
+    died_by_force = recode_factor(cause_recoded, "Forced" = 1, "Battle" = 0, "Natural Causes" = 0),
+    died_by_battle = recode_factor(cause_recoded, "Forced" = 0, "Battle" = 1, "Natural Causes" = 0),
+    died_naturally = recode_factor(cause_recoded, "Forced" = 0, "Battle" = 0, "Natural Causes" = 1)
     ) %>%
   dplyr:: select(index, name, rise_recoded, cause_recoded, everything(), -cause, -killer, - birth_year, -death_year, -rise, -dynasty, -killer_recoded) %>%
 #Removing missing data  
@@ -228,7 +265,6 @@ emperors_principate <- emperors %>%
 ```
 
 ## Predicting the age of the emperors at the end of their reign
-The emperors age at the end of their reign varied, so it 
 
 ```{r}
 #checking the normality of the dependent variable
@@ -269,9 +305,14 @@ spreadLevelPlot(model_age_end2)
 tab_model(model_age_end1, model_age_end2, show.est = TRUE, show.fstat = TRUE, show.aic = TRUE)
 ```
 
-## Probabilities of dying by force, battle, or natural causes
+A multiple logistic regression was calculated to predict the age of the emperors at the end of their reign (age_reign_end).
+In MODEL1 rise_recoded and the century was entered as predictive variables.
+MODEL1 was significant (F(3, 40) = 69.64, p < 0.05, R^2 = 0.21, RSE = 15.56, RMSE =). The emperor's predicted age_reign_end is equal to 71.561 -15.764 * (rise_recoded) - 5.842 * (century), where rise_recoded is coded as Birthright and Other and century is counted in centuries. Both predictors were significant.
+In MODEL2 rise_recoded and age_reign_start was entered as predictive variables.
+MODEL2 was significant (F(2, 41) = 105.8, p < 0.001, R^2 = 0.83, RSE = 7.06). The emperor's predicted age_reign_end is equal to -1.96206 + 13.40431 * (rise_recoded) + 1.08973 * (age_reign_start), where rise_recoded is coded as Birthright and Other and age_reign_start is counted in years. Both predictors were significant and were homoscedastic (MODEL1: X2(1, N = 44) = 0.6673762, p > 0.05, MODEL2: X2(1, N = 44) = 1.182378, p > 0.05)
+The R^2 is higher and RSE is smaller for MODEL2, which means MODEL2 explains higher variability (83% instead of 21%) of the dependent variable.  According to the visualizations as well, MODEL2 is a better fit to the dataset.
 
-The emperors have died by many reasons. So I fit predictive models for each death type (forced, battle, natural). Since I have no prior hypothesis which predictive variable might be good for the models, I enter all the variables and then leave in the fitted models the ones, which makes the best fitted model.
+## Probabilities of dying by force, battle, or natural causes
 
 ``` {r}
 #null model for modeling the predictors of dying by force
@@ -302,8 +343,7 @@ summary(model_natural)
 tab_model(model_natural_null, model_natural, show.est = TRUE, show.fstat = TRUE, show.aic = TRUE, show.loglik = TRUE)
 ```
 
-The AIC number of the fitted models was only higher in the case of the predictive model of dying naturally (fitted model: 52.224, null model: 55.413). This means that the variance in the case of dying in battle or by force cannot be explained by the variables in the dataset, so I will continue to work on the model related to dying naturally.
-
+The predictors were only significant in the case of the predictive model of dying naturally, and the AIC numbers were smaller for the fitted mosel as well (fitted model: 52.224, null model: 55.413). 
 ```{r}
 #creating a tibble with the predicted and observed values and the predictive variables
 natural_prob <- predict(model_natural, data = emperors_principate, type = "response")
@@ -325,22 +365,11 @@ res <- chisq.test(emperors_principate$died_naturally, round(fitted(model_natural
 res
 ```
 
-## Results
 
-### The age of the emperors at the end of their reign
-
-A multiple logistic regression was calculated to predict the age of the emperors at the end of their reign (age_reign_end).
-In MODEL1 rise_recoded and the century was entered as predictive variables.
-MODEL1 was significant (F(3, 40) = 69.64, p < 0.05, R^2 = 0.21, RSE = 15.56, RMSE =). The emperor's predicted age_reign_end is equal to 71.561 -15.764 (rise_recoded) - 5.842 (century), where rise_recoded is coded as Birthright and Other and century is counted in centuries. Both predictors were significant.
-In MODEL2 rise_recoded and age_reign_start was entered as predictive variables.
-MODEL2 was significant (F(2, 41) = 105.8, p < 0.001, R^2 = 0.83, RSE = 7.06). The emperor's predicted age_reign_end is equal to -1.96206 + 13.40431 (rise_recoded) + 1.08973 (age_reign_start), where rise_recoded is coded as Birthright and Other and age_reign_start is counted in years. Both predictors were significant and were homoscedastic (MODEL1: X2(1, N = 44) = 0.6673762, p > 0.05, MODEL2: X2(1, N = 44) = 1.182378, p > 0.05)
-The R^2 is higher and RSE is smaller for MODEL2, which means MODEL2 explains higher variability (83% instead of 21%) of the dependent variable.  According to the visualizations as well, MODEL2 is a better fit to the dataset.
-
-### The death of the emperors
 A multiple logistic regression was calculated to predict died_naturally (MODEL5), died_by_force (MODEL3), died_by_battle (MODEL4). The AIC numbers of MODEL3 and MODEL4 were higher then their null models, which means these variables cannot be explained by the variables in the dataset.
-The prediction of died_naturally was based on rise_recoded and age_reign_start. The emperor's predicted died_naturally is equal to -5.24133 + 2.42209 (rise_recoded)  + 0.07210 (age_reign_start), where rise_recoded is coded as Birthright and Other and age_reign_start is measured in years. Both predictors were significant.
+The prediction of died_naturally was based on rise_recoded and age_reign_start. The emperor's predicted died_naturally is equal to - 5.24133 + 2.42209 * (rise_recoded)  + 0.07210 * (age_reign_start), where rise_recoded is coded as Birthright and Other and age_reign_start is measured in years. Both predictors were significant.
 Based on statistical diagnostics the fitted model cannot be considered reliable. Tjur's R2 is 0.15 so the model does not explain the 85% of the variation,  and the predicted and the observed results was found to be independent (X2(1, N = 44) = 7.2196, p < 0.05).
 
-## Improvement
+## Improvements
 
 It would be useful to collect more information related to the emperors: health condition, mental illnesses, foreign policy situation (for eg, war with barbarian tribes), domestic political situation to have a better predictive model.
